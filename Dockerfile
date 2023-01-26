@@ -13,26 +13,26 @@ ARG MID_INSTALLATION_URL=https://install.service-now.com/glide/distribution/buil
 ARG MID_INSTALLATION_FILE
 ARG MID_SIGNATURE_VERIFICATION="TRUE"
 
-WORKDIR /opt/snc_mid_server/
+WORKDIR /opt/midserver/
 
 COPY asset/*.zip asset/download.sh asset/validate_signature.sh ./
 
 # download.sh and validate_signature.sh
-RUN chmod 6750 /opt/snc_mid_server/*.sh
+RUN chmod 6750 /opt/midserver/*.sh
 
 RUN echo "Check MID installer URL: ${MID_INSTALLATION_URL} or Local installer: ${MID_INSTALLATION_FILE}"
 
 # Download the installation ZIP file or using the local one
 RUN if [ -z "$MID_INSTALLATION_FILE" ] ; \
-    then /opt/snc_mid_server/download.sh $MID_INSTALLATION_URL ; \
-    else echo "Use local file: $MID_INSTALLATION_FILE" && ls -alF /opt/snc_mid_server/ && mv /opt/snc_mid_server/$MID_INSTALLATION_FILE /tmp/mid.zip ; fi
+    then /opt/midserver/download.sh $MID_INSTALLATION_URL ; \
+    else echo "Use local file: $MID_INSTALLATION_FILE" && ls -alF /opt/midserver/ && mv /opt/midserver/$MID_INSTALLATION_FILE /tmp/mid.zip ; fi
 
 # Verify mid.zip signature
 RUN if [ "$MID_SIGNATURE_VERIFICATION" = "TRUE" ] ; \
-    then echo "Verify the signature of the installation file" && /opt/snc_mid_server/validate_signature.sh /tmp/mid.zip; \
+    then echo "Verify the signature of the installation file" && /opt/midserver/validate_signature.sh /tmp/mid.zip; \
     else echo "Skip signature validation of the installation file "; fi
 
-RUN unzip -d /opt/snc_mid_server/ /tmp/mid.zip && rm -f /tmp/mid.zip
+RUN unzip -d /opt/midserver/ /tmp/mid.zip && rm -f /tmp/mid.zip
 
 # ################
 # Final Stage (using the downloaded ZIP file from previous stage)
@@ -92,20 +92,20 @@ RUN groupadd -g $GROUP_ID $MID_USERNAME && \
         useradd -c "MID container user" -r -m -u $USER_ID -g $MID_USERNAME $MID_USERNAME
 
 # only copy needed scripts and .container
-COPY asset/init asset/.container asset/check_health.sh /opt/snc_mid_server/
+COPY asset/init asset/.container asset/check_health.sh /opt/midserver/
 
 # 6:setuid + setgid, 750: a:rwx, g:rx, o:
-RUN chmod 6750 /opt/snc_mid_server/* && chown -R $MID_USERNAME:$MID_USERNAME /opt/snc_mid_server/
+RUN chmod 6750 /opt/midserver/* && chown -R $MID_USERNAME:$MID_USERNAME /opt/midserver/
 
 # Copy agent/ from download_verification
-COPY --chown=$MID_USERNAME:$MID_USERNAME  --from=download_verification /opt/snc_mid_server/agent/ /opt/snc_mid_server/agent/
+COPY --chown=$MID_USERNAME:$MID_USERNAME  --from=download_verification /opt/midserver/agent/ /opt/midserver/agent/
 
 # Check if the wrapper PID file exists and a HeartBeat is processed in the last 30 minutes
 HEALTHCHECK --interval=5m --start-period=3m --retries=3 --timeout=15s \
     CMD bash check_health.sh || exit 1
 
-WORKDIR /opt/snc_mid_server/
+WORKDIR /opt/midserver/
 
 USER $MID_USERNAME
 
-ENTRYPOINT ["/opt/snc_mid_server/init", "start"]
+ENTRYPOINT ["/opt/midserver/init", "start"]

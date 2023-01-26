@@ -1,15 +1,15 @@
 #!/bin/bash
 set -e
 
-MID_HOME="/opt/snc_mid_server/agent"
+MID_HOME="/opt/midserver/agent"
 CONF_FILE="${MID_HOME}/config.xml"
 WRAPPER_CONF_FILE="${MID_HOME}/conf/wrapper-override.conf"
 
 # Mandatory ENV
-MID_INSTANCE_URL=https://dev102654.service-now.com/
+MID_INSTANCE_URL=https://dev102654.service-now.com
 MID_INSTANCE_USERNAME=midzerverz
 MID_INSTANCE_PASSWORD=JebacPis13@$
-MID_SERVER_NAME=openshift1
+MID_SERVER_NAME=midusek1
 
 # Secret
 MID_SECRETS_FILE=${MID_SECRETS_FILE:-}
@@ -105,7 +105,7 @@ generateConfigXml () {
     # Ensure log file exists for logger in java classes
     touch /home/mid/java0.log
 
-    cd /opt/snc_mid_server/agent && \
+    cd /opt/midserver/agent && \
       sh bin/scripts/manage-certificates.sh -a "DefaultSecurityKeyPairHandle" $MID_MUTUAL_AUTH_PEM_FILE
 
     if [[ $? != 0 ]]
@@ -114,7 +114,7 @@ generateConfigXml () {
       exit $EXIT_CODE_MUTUAL_AUTH_SETUP_FAILURE
     fi
 
-    cd /opt/snc_mid_server/agent && \
+    cd /opt/midserver/agent && \
       sh bin/scripts/manage-certificates.sh -m
 
     if [[ $? != 0 ]]
@@ -295,36 +295,36 @@ MAX_INIT_WAIT_TIME=60
 
 midStart () {
 
-  touch /opt/snc_mid_server/agent/logs/agent0.log.0
+  touch /opt/midserver/agent/logs/agent0.log.0
 
   echo "DOCKER: starting mid server"
 
-  /opt/snc_mid_server/agent/bin/mid.sh start &
+  /opt/midserver/agent/bin/mid.sh start &
 
   # CLI does not fully spawned and need a wait until the process generated. Not having the wait would make container
   # to exit immediately.
   waitTime=0
-  while [ ! -f /opt/snc_mid_server/agent/work/mid.pid ] && [ "$waitTime" -lt "$MAX_INIT_WAIT_TIME" ]
+  while [ ! -f /opt/midserver/agent/work/mid.pid ] && [ "$waitTime" -lt "$MAX_INIT_WAIT_TIME" ]
   do
     sleep 5
     waitTime=$(( $waitTime + 5 ))
     echo "DOCKER: Mid wrapper init taking $waitTime sec .."
   done
 
-  wrapper_pid=$(cat /opt/snc_mid_server/agent/work/mid.pid)
+  wrapper_pid=$(cat /opt/midserver/agent/work/mid.pid)
 
   # In addition, we rely on CLI execution to restart MID service which should not exit the container either.
   # We would need a way to keep container alive
   while true
   do
-      tail -F /opt/snc_mid_server/agent/logs/agent0.log.0 & wait ${!}
+      tail -F /opt/midserver/agent/logs/agent0.log.0 & wait ${!}
   done
 
 }
 
 _handleSignal_SIGTERM() {
   echo "DOCKER: Received signal SIGTERM, gracefully shut down mid before exiting..."
-  /opt/snc_mid_server/agent/bin/mid.sh stop
+  /opt/midserver/agent/bin/mid.sh stop
 
   exit $EXIT_CODE_NORMAL_SHUTDOWN
 }
@@ -332,13 +332,13 @@ _handleSignal_SIGTERM() {
 midStop () {
   echo "DOCKER: stopping mid server"
 
-  /opt/snc_mid_server/agent/bin/mid.sh stop
+  /opt/midserver/agent/bin/mid.sh stop
 }
 
 midRestart () {
   echo "DOCKER: restarting mid server"
 
-  /opt/snc_mid_server/agent/bin/mid.sh restart
+  /opt/midserver/agent/bin/mid.sh restart
 }
 
 midSetup () {
